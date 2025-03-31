@@ -1,0 +1,22 @@
+spabase_auth/
+├── .env.local
+├── app/
+│   ├── page.tsx
+│   ├── layout.tsx
+│   ├── login/
+│   │   └── page.tsx
+│   ├── register/
+│   │   └── page.tsx
+│   ├── dashboard/
+│   │   └── page.tsx
+│   └── api/
+│       └── auth.ts
+├── components/
+│   ├── AuthProvider.tsx
+│   └── Navigation.tsx
+├── lib/
+│   └── auth.ts
+├── utils/
+│   └── supabase.ts
+├── middleware.ts
+└── package.json
