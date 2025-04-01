@@ -11,6 +11,7 @@ type AuthContextType = {
   session: Session | null;
   loading: boolean;
   signOut: () => Promise<void>;
+  deleteAccount: () => Promise<{ success: boolean; error?: string }>;
 };
 
 // 認証コンテキストの作成
@@ -19,6 +20,7 @@ const AuthContext = createContext<AuthContextType>({
   session: null,
   loading: true,
   signOut: async () => {},
+  deleteAccount: async () => ({ success: false }),
 });
 
 // AuthContext を使用するためのカスタムフック
@@ -76,12 +78,55 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     await supabase.auth.signOut();
   };
 
+  // アカウント削除処理
+  const deleteAccount = async () => {
+    if (!user || !session) {
+      return { success: false, error: 'ユーザーが認証されていません' };
+    }
+
+    try {
+      // プロファイルテーブルが存在しない場合は関連するコードをコメントアウト
+      /*
+      if (user.id) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .delete()
+          .eq('id', user.id);
+        
+        if (profileError) {
+          console.error('プロファイル削除エラー:', profileError);
+        }
+      }
+      */
+
+      // ユーザー自身がアカウント削除するためのRPC関数を呼び出す
+      const { error } = await supabase.rpc('delete_user');
+      
+      if (error) {
+        console.error('ユーザー削除エラー:', error);
+        return { success: false, error: `削除に失敗しました: ${error.message}` };
+      }
+
+      // 削除に成功したらサインアウト処理も行う
+      await supabase.auth.signOut();
+      
+      // ログイン画面に戻る
+      router.push('/login');
+      
+      return { success: true };
+    } catch (error: any) {
+      console.error('アカウント削除中にエラーが発生しました:', error);
+      return { success: false, error: error?.message || '不明なエラーが発生しました' };
+    }
+  };
+
   // コンテキストの値
   const value = {
     user,
     session,
     loading,
     signOut,
+    deleteAccount,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

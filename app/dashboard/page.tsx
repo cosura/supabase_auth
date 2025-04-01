@@ -6,9 +6,11 @@ import { useAuth } from '../../components/AuthProvider.tsx';
 import { supabase } from '../../utils/supabase';
 
 export default function Dashboard() {
-  const { user, loading, signOut } = useAuth();
+  const { user, loading, signOut, deleteAccount } = useAuth();
   const [userProfile, setUserProfile] = useState<any>(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const router = useRouter();
 
   // 認証チェック
@@ -58,6 +60,32 @@ export default function Dashboard() {
     }
   }, [user]);
 
+  // アカウント削除処理
+  const handleDeleteAccount = async () => {
+    // 確認ダイアログを表示
+    const confirmed = window.confirm(
+      '本当にアカウントを削除しますか？この操作は取り消せません。'
+    );
+
+    if (!confirmed) return;
+
+    setIsDeleting(true);
+    setDeleteError(null);
+
+    try {
+      const result = await deleteAccount();
+      
+      if (!result.success) {
+        setDeleteError(result.error || 'アカウント削除中にエラーが発生しました');
+      }
+      // 成功した場合はログインページにリダイレクトする（AuthProviderで処理されています）
+    } catch (error: any) {
+      setDeleteError(error?.message || '不明なエラーが発生しました');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   // ローディング中の表示
   if (loading || !user) {
     return <div className="text-center mt-10">読み込み中...</div>;
@@ -104,12 +132,39 @@ export default function Dashboard() {
       <div className="bg-white p-6 rounded-lg shadow-md">
         <h2 className="text-xl font-semibold mb-4">アカウント管理</h2>
         
-        <button
-          onClick={signOut}
-          className="bg-red-500 text-white py-2 px-4 rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50"
-        >
-          ログアウト
-        </button>
+        <div className="flex flex-col gap-4">
+          {/* エラーメッセージ表示エリア */}
+          {deleteError && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+              <strong className="font-bold">エラー: </strong>
+              <span className="block sm:inline">{deleteError}</span>
+            </div>
+          )}
+          
+          <div className="flex flex-col sm:flex-row gap-4">
+            {/* ログアウトボタン */}
+            <button
+              onClick={signOut}
+              disabled={isDeleting}
+              className="bg-red-500 text-white py-2 px-4 rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 disabled:opacity-50"
+            >
+              ログアウト
+            </button>
+            
+            {/* 退会ボタン */}
+            <button
+              onClick={handleDeleteAccount}
+              disabled={isDeleting}
+              className="bg-gray-800 text-white py-2 px-4 rounded-md hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-800 focus:ring-opacity-50 disabled:opacity-50"
+            >
+              {isDeleting ? '処理中...' : 'アカウント削除（退会）'}
+            </button>
+          </div>
+          
+          <p className="text-sm text-gray-500 mt-2">
+            アカウントを削除すると、すべてのデータが完全に削除され、元に戻すことはできません。
+          </p>
+        </div>
       </div>
     </div>
   );
